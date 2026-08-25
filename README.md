@@ -2,7 +2,7 @@
 
 A vendor-independent, geometry-based safety verification platform for autonomous vehicle (AV) motion planning — certifying in real time that a planned trajectory maintains a provable safety margin against current and forecasted occupancy of the environment.
 
-<img width="1423" height="871" alt="image" src="https://github.com/user-attachments/assets/67f0d7b0-dce5-40a6-b004-3c3122f6df85" />
+https://github.com/user-attachments/assets/31b0ae50-3435-41ca-ae26-58a584b81635
 
 
 See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the full problem statement, challenges, goals, and phased implementation/deployment plan, and [src/README.md](src/README.md) for the module-level architecture and data-flow.
