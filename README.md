@@ -4,6 +4,11 @@
 
 **Topics:** autonomous-vehicles, trajectory-verification, computational-geometry, signed-distance-fields, voxel-grids, safety
 
+https://github.com/user-attachments/assets/31b0ae50-3435-41ca-ae26-58a584b81635
+
+
+See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the full problem statement, challenges, goals, and phased implementation/deployment plan, and [src/README.md](src/README.md) for the module-level architecture and data-flow.
+
 Planner-independent research prototype for evaluating whether a candidate vehicle
 trajectory maintains a requested geometric margin against a 3D occupancy grid and
 simple dynamic-agent forecasts. A safe verdict is conservative with respect to the
