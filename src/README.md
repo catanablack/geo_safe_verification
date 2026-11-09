@@ -1,10 +1,11 @@
 # Source Architecture — Real-Time Geometric Safety Verification Platform
 
-This directory sketches the modules and building blocks described in the
-[Implementation Plan](../PROJECT_PLAN.md#5-implementation-plan). It is a
-structural scaffold (interfaces + stubs), not a finished implementation —
-intended to establish module boundaries, data contracts, and backend/frontend
-wiring before deep implementation begins.
+This directory contains the modules and building blocks described in the
+[Implementation Plan](../PROJECT_PLAN.md#5-implementation-plan). Most modules
+remain structural scaffolding; `verification_engine` now has a runnable
+NumPy/SciPy prototype for voxel SDF queries, swept-footprint sampling, and
+conservative safety checks. It is not a finished or production-certified
+platform.
 
 ## Directory Layout
 

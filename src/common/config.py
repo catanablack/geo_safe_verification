@@ -3,6 +3,7 @@
 Centralizes tunables referenced by multiple modules (safety margins, voxel
 resolution, forecast horizon, etc.) so they are not hard-coded per-module.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ from dataclasses import dataclass
 class SafetyConfig:
     min_safety_margin_m: float = 0.5
     max_verification_latency_ms: float = 50.0
+    occupancy_threshold: float = 0.5
+    dynamic_agent_radius_m: float = 0.5
 
 
 @dataclass(frozen=True)

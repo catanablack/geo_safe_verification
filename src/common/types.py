@@ -5,6 +5,7 @@ predictive_occupancy, verification_engine, trajectory_arbitration,
 simulation_harness, cross_platform, api). Keep this module free of any
 module-specific logic.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -66,12 +67,17 @@ class VoxelGrid:
 
 @dataclass(frozen=True)
 class DynamicAgentForecast:
-    """Predicted future footprint for a single dynamic agent (Phase 2)."""
+    """Predicted future footprint for a single dynamic agent (Phase 2).
+
+    ``footprint_radius_m`` optionally provides a conservative circular bound
+    for consumers that need to account for the agent's physical extent.
+    """
 
     agent_id: str
     predicted_positions: Sequence[Pose2D]
     horizon_s: float
     confidence: float
+    footprint_radius_m: float | None = None
 
 
 @dataclass(frozen=True)
