@@ -2,70 +2,186 @@
 
 **Project:** Planner-independent geometric trajectory verification
 
-**Prepared:** 2026-11-07
+**Prepared:** 2026-11-09
 
 **Audience:** Project sponsors, technical collaborators, prospective design partners, and commercialization advisors
 
 **Status:** Internal planning document; product, market, and performance claims below are hypotheses or proposed gates unless explicitly identified as measured
 
+For the repository's concise overview and current implementation status, start
+with the [README](../README.md). This brief expands the project rationale,
+intended scope, adoption thesis, and route to implementation.
+
 ## Executive summary
 
-This project explores an independent software layer that checks whether a
-candidate vehicle trajectory maintains a requested geometric clearance from
-modeled static occupancy and forecasted moving agents. Its potential value is
-to help autonomous-vehicle (AV) engineering teams find unsafe candidate paths,
-compare planner changes, and produce reproducible verification evidence without
-replacing their planner.
+Autonomous-vehicle (AV) developers face a difficult scaling problem: they must
+validate increasingly complex automated driving systems across distinct
+vehicles, operating domains, cities, and state requirements. Each deployment
+may involve a different planner, data pipeline, test environment, and evidence
+format. This can lead to duplicated integration and validation effort, make
+results difficult to compare, and slow the transfer of engineering lessons
+from one program or location to another. More simulation or road testing alone
+does not necessarily make the underlying evidence comparable or reusable.
 
-The repository currently contains a runnable NumPy/SciPy prototype of a voxel
-signed-distance field, swept-footprint sampling, and a conservative
-certification API. It also contains early tests, a latency sweep, a basic API
-scaffold, and a nuScenes metadata benchmark. It does **not** contain a
-production-ready AV safety product: uncertainty is incomplete, dynamic agents
-are simplified, most system modules remain scaffolding, performance is not
-real-time on the dataset workload, and the benchmark has unresolved archive
-checksum discrepancies.
+**Project idea:** create a planner-independent geometric trajectory
+verification component with a stable, documented interface. Given a candidate
+trajectory, a vehicle footprint, a voxelized environment, forecasts for
+relevant moving agents, and a requested clearance, it checks the trajectory's
+modeled swept volume and reports a verdict, clearance estimate, assumptions,
+and diagnostic evidence. The first intended use is offline replay and
+engineering validation, followed—only if the evidence supports it—by
+non-actuating shadow-mode evaluation.
 
-**Recommended strategy:** validate a narrow engineering product first: an
-offline and shadow-mode trajectory verification SDK with a clear input/output
-contract, deterministic replay, diagnostics, and evidence export. Start with
-developer tools and validation workflows, not an actuating in-vehicle safety
-controller or a claim of regulatory certification. Advance toward operational
-use only after independent technical validation, partner-specific integration
-tests, legal/IP clearance, and safety-engineering review.
+**Problem addressed:** teams need a repeatable way to ask and inspect a
+specific question—does this candidate path keep the configured geometric
+clearance from the supplied, modeled scene over the checked horizon? The
+proposed component is intended to make that check independent of a particular
+planner and easier to reproduce across validation runs. It is not a complete
+answer to AV safety, which also depends on perception, prediction, planning,
+vehicle behavior, operational controls, and jurisdiction-specific review.
+
+**Why it could support broader AV adoption:** a common technical interface and
+repeatable evidence format could reduce the work required to integrate and
+compare this class of check across AV programs and operating locations. If
+developers, simulation/validation providers, and fleet teams find it useful,
+the component could help carry validated engineering practices and test
+artifacts from one city or state deployment to another. In that way, it may
+contribute to more consistent engineering and lower deployment friction as AV
+technology scales nationally.
+
+This is a **pathway hypothesis, not a claim of nationwide impact**. Software
+alone cannot standardize AV laws, obtain regulatory acceptance, guarantee
+vehicle safety, or cause deployment. The project proposes a reusable
+engineering building block that could complement different local processes;
+it does not replace them or impose a single safety case on every jurisdiction.
+
+**Current maturity:** the repository contains a runnable NumPy/SciPy prototype
+of a voxel signed-distance field, swept-footprint sampling, and a conservative
+certification API, along with early tests, a latency sweep, a basic API
+scaffold, and an exploratory nuScenes metadata benchmark. It is not a
+production-ready AV safety product. Uncertainty treatment is incomplete,
+dynamic agents are simplified, most broader platform modules remain
+scaffolding, and measured latency on the dataset workload exceeds the
+configured 50 ms target. The benchmark results are provisional because
+downloaded archive MD5 values do not match the publisher's listed checksums.
+
+**Recommended strategy:** validate the narrow engineering tool and user
+problem first. Do not begin with a full perception-to-control platform or an
+actuating safety controller. Advancement toward shadow mode or any operational
+use requires independent technical review, representative authorized data,
+partner-specific validation, a workload-specific performance case, and
+legal/IP clearance.
 
 ### Decisions sought
 
-1. Approve a focused discovery and validation stage rather than building the
-   entire proposed perception-to-planning platform at once.
-2. Select one initial design-partner profile (recommended: AV planning or
-   simulation/validation team) and agree on a non-actuating pilot objective.
+1. Approve a focused problem-discovery and verification-core stage rather than
+   building the entire proposed perception-to-planning platform at once.
+2. Select one initial design-partner profile—recommended: an AV planning,
+   simulation, or validation team—and agree on an offline, non-actuating pilot
+   objective.
 3. Assign owners for technical validation, customer discovery, and IP/data
-   review before any external product or safety claims.
-4. Treat the current benchmark as exploratory only until the dataset integrity
-   issue is resolved and the evaluation is expanded and independently reviewed.
+   review before external product or safety claims.
+4. Treat the existing benchmark as exploratory until the dataset integrity
+   issue is resolved and the evaluation protocol and results receive further
+   review.
 
-## 1. Project establishment
+## 1. The problem and the adoption challenge
 
-### Purpose
+### The problem to tackle
 
-Develop and evaluate a planner-independent geometric checking component that
-answers a limited, auditable question:
+The initial problem is not “make AVs safe” in the abstract. It is the narrower
+engineering and integration problem of consistently checking candidate
+trajectories against a supplied geometric scene model. A team may need to
+answer the same clearance question for multiple planner versions, vehicles,
+simulation runs, or deployment locations, but may lack a reusable,
+planner-independent component and a consistent way to record the assumptions
+and result.
 
-> Given a specific trajectory, vehicle footprint, occupancy representation,
-> agent forecasts, and explicit model assumptions, does the modeled geometry
-> maintain at least the requested clearance over the checked horizon?
+The broader adoption challenge is that AV deployments are developed by
+different organizations and reviewed within different operational and
+jurisdictional contexts. A successful deployment in one location does not
+automatically establish suitability in another: road conditions, operating
+domains, fleet operations, system configurations, local rules, and validation
+expectations can differ. This project does not resolve those differences. It
+targets one reusable technical activity—geometric trajectory checking—that
+could be integrated into different development and validation pipelines.
 
-The answer applies only to the supplied inputs and supported model. It is not a
-claim that the scene was perceived correctly, that forecasts are accurate, or
-that a vehicle is safe to operate.
+### Where the current process may be fragmented
 
-### Proposed mission and vision
+These are problem hypotheses to validate with customers and partners, not
+universal claims about every AV program:
+
+- Trajectory checks may be tightly coupled to an individual planner or
+  simulation stack, increasing the effort to reuse them elsewhere.
+- Teams may use different scene, vehicle-footprint, forecast, and report
+  representations, making results harder to reproduce or compare.
+- A geometric verdict may be difficult to audit if assumptions, input
+  versions, margins, and failure cases are not recorded with it.
+- Validation from one vehicle or operating location may require repeated
+  integration work before it can inform another program.
+- Safety engineering teams must combine technical results with their own
+  system-level analyses and local obligations; an isolated algorithm result
+  is not a portable safety case.
+
+### The proposed contribution to AV adoption
+
+The project can contribute to broader, more consistent adoption only through a
+chain of outcomes:
+
+1. **Define a portable technical contract.** Specify the trajectory, vehicle,
+   occupancy, forecast, time-base, coordinate-frame, margin, and result
+   semantics so a compatible component can be integrated without replacing a
+   planner.
+2. **Make checks reproducible.** Version inputs and configurations; retain
+   verdicts, modeled clearances, diagnostics, and known assumptions.
+3. **Validate across representative scenarios.** Use common replay procedures,
+   geometry references, baselines, and transparent metrics to compare results
+   across configurations and locations.
+4. **Reduce repeated engineering effort.** If the interface and evidence
+   artifacts prove useful, developers and tool vendors can reuse integrations
+   and validation procedures rather than recreate this specific check for
+   each program.
+5. **Support local review rather than replace it.** A consistent technical
+   artifact may help teams organize and compare evidence, while each operator
+   and jurisdiction retains its own safety, legal, and regulatory processes.
+
+The intended standardization is therefore **voluntary technical
+interoperability and repeatable engineering practice**, not a new legal or
+regulatory standard. Nationwide relevance is an outcome to earn through
+multi-partner evaluation and adoption; it cannot be claimed from the current
+prototype or a single dataset.
+
+### Adoption theory of change and proof points
+
+| Adoption friction to investigate | Potential project contribution | Evidence needed before claiming value |
+|---|---|---|
+| Teams repeatedly adapt trajectory checks to different planners or simulation tools | A stable, documented interface plus narrow adapters can make the check reusable without replacing those systems | Independent integrations with more than one partner stack; setup effort and unsupported cases recorded |
+| Results are difficult to reproduce or compare across runs | Versioned inputs/configuration, deterministic replay, and common result fields can make runs more inspectable | Partners independently reproduce a result and agree that the artifacts are useful in their review process |
+| A check validated in one vehicle or operating context may not transfer directly | Separate the reusable geometry contract from vehicle footprints, local scene inputs, operating-domain scenarios, and partner-specific acceptance rules | Repeat evaluations across different vehicles or operating domains; document what transfers and what must be revalidated |
+| Engineering evidence may be fragmented across organizations and locations | A common technical vocabulary and export format could make a bounded class of evidence easier to exchange | Evidence consumers confirm the format is interpretable; no assumption that agencies accept it or that legal requirements are uniform |
+
+This theory connects the product to adoption indirectly: if the component
+reduces duplicated engineering work and helps teams create reproducible
+evidence, it could lower one source of friction in developing and expanding AV
+services. Whether this affects deployment timelines, costs, public confidence,
+or market adoption is an empirical question for multi-partner pilots. Many
+other technical, operational, economic, social, and regulatory factors remain
+outside the project's control.
+
+For cross-city and cross-state use, the design goal is a **portable core with
+explicitly configurable context**, not one universal configuration. Vehicle
+geometry, map/forecast inputs, operating design domain (ODD), scenario
+coverage, and local review criteria may vary. Each deployment would need to
+document its own assumptions and validation; reuse of the interface does not
+transfer approval from one location to another.
+
+### Mission and vision
 
 - **Mission:** make trajectory-level geometric checks easier to integrate,
   reproduce, inspect, and validate across planning systems.
-- **Vision:** provide a trusted verification component and evidence workflow
-  that can complement AV development and validation pipelines.
+- **Vision:** contribute a reusable verification component and evidence
+  workflow that can complement AV development and validation across programs
+  and operating locations.
 
 ### Product principles
 
@@ -86,69 +202,114 @@ that a vehicle is safe to operate.
 
 | It is | It is not today |
 |---|---|
-| A research prototype for geometric trajectory clearance checks | A certified safety system or proof of vehicle-level safety |
-| A potential SDK/tooling layer for planner and validation teams | A replacement for perception, prediction, planning, or vehicle control |
+| A research prototype for geometric trajectory checks and a potential reusable engineering component | A certified safety system or proof of vehicle-level safety |
+| A proposed portable interface for planner, simulation, and validation workflows | A replacement for perception, prediction, planning, control, or local review |
 | A basis for repeatable offline and future shadow-mode experiments | A demonstrated hard real-time in-vehicle component |
-| A project with explicit assumptions and testable engineering hypotheses | A verified regulatory-compliance solution or safety-case approval shortcut |
+| A possible contributor to more consistent technical evidence across programs | A national AV deployment mandate, regulatory standard, or approval shortcut |
 
-## 2. Problem, product thesis, and objectives
+## 2. Scope: what implementation includes
 
-### Problem hypothesis
+### Core verification function
 
-AV developers may benefit from an independently testable geometric check that
-can inspect candidate trajectories against scene representations and expose
-where clearance is lost. Existing product value and willingness to pay have
-not yet been established through customer discovery.
+At its core, the product accepts a time-indexed candidate trajectory and a
+description of the modeled environment and vehicle. It evaluates whether the
+modeled vehicle swept volume meets the requested geometric clearance from
+static occupancy and supported dynamic-agent forecasts. A useful result should
+include more than a Boolean: it should identify the minimum modeled clearance,
+where/when the limiting interaction occurs, the assumptions and bounds applied,
+and any missing or invalid coverage that prevents a meaningful verdict.
 
-### Product thesis
+### Target implementation package
 
-The first useful product is likely not a full autonomy stack. It is a developer
-and validation tool that can:
+The recommended initial package is an offline verification SDK and replay
+workflow, comprising:
 
-- ingest a candidate trajectory, vehicle dimensions, occupancy grid, and
-  dynamic-agent forecasts;
-- calculate a conservative modeled clearance and safe/unsafe/indeterminate
-  verdict;
-- identify the time and spatial region driving the verdict;
-- run consistently on replayed scenarios and compare versions or baselines;
-- export machine-readable and human-reviewable evidence with assumptions and
-  provenance.
+- **Versioned integration contract:** documented units, coordinate frames,
+  timestamp rules, trajectory and footprint representations, occupancy and
+  forecast semantics, margin configuration, and output/error behavior.
+- **Geometric verification core:** distance-field queries, swept-volume
+  coverage, static occupancy checks, supported dynamic-agent geometry, and
+  explicit discretization/error allowances.
+- **Input validation and result semantics:** validation for malformed,
+  incomplete, stale, out-of-bounds, or unsupported inputs; explicit unsafe or
+  unknown/error outcomes instead of silently treating missing information as
+  safe.
+- **Replay and evaluation tooling:** deterministic scenario ingestion,
+  repeated candidate evaluation, reference-geometry comparisons, baselines,
+  and workload-level measurements.
+- **Evidence output:** machine-readable records and reviewer-oriented reports
+  that preserve software/configuration versions, assumptions, verdicts,
+  margins, diagnostics, and performance measurements.
+- **Partner adapters and examples:** initially one agreed data format and
+  workflow; broader integrations only when validated demand justifies them.
+- **Quality and release practices:** test suites, regression cases, supported
+  environment definitions, dependency inventory, documentation, and
+  reproducible releases.
 
-The existing verifier addresses part of this thesis. Replay management,
-validated uncertainty handling, robust evidence packaging, integration
-hardening, and a supported operational performance envelope remain to be built
-or demonstrated.
+The [README](../README.md) summarizes what is implemented today and links to
+the [technical report](./technical-report.md) for algorithm and measurement
+details. The target package above is a product-development scope, not a claim
+that every component is already present in the repository.
 
-### Objectives
+### Current implementation versus remaining platform gaps
+
+| Capability | Current state | Gap to a credible product |
+|---|---|---|
+| Voxel SDF and conservative clearance | NumPy/SciPy prototype with explicit discretization allowances | Independent review, broader geometry/property tests, numerical and supported-domain specification |
+| Swept-volume checking | Sampled extruded footprint and interpolated poses | Broader footprint/vehicle models, independent geometry oracle, validated bounds for supported motion and input conditions |
+| Dynamic agents | Forecast centers interpolated and represented by configurable circles | Agent dimensions, uncertainty sets, confidence semantics, time synchronization, stale/missing forecast behavior |
+| Occupancy input | Thresholded voxel-grid contract | Calibrated probability/uncertainty treatment, map provenance, sensor and fusion integration; fusion is not currently a production subsystem |
+| Trajectory input | Shared project types and prototype verification interface | Stable, versioned external schema and supported planner/simulator adapters |
+| Evidence and replay | Benchmark scripts and JSON output for selected experiments | Scenario registry, deterministic replay, provenance, report versioning, reproducible CI workflow |
+| Performance | Prototype latency sweeps | Profiling, caching/algorithm improvements, tail-latency characterization, workload-specific performance envelope; current nuScenes workload exceeds the configured 50 ms target |
+| Evaluation | Analytic tests, finite brute-force cases, and selected nuScenes metadata run | Resolve archive checksum mismatch, expand authorized scenarios, improve time-continuous ground truth, compare independently implemented baselines, and obtain external review |
+| System-level components | API/frontend and several planning/perception modules are scaffolding or prototypes | Not in the initial scope; do not imply end-to-end AV capability |
+
+### Explicitly out of scope for the initial product
+
+- Building a full perception, forecasting, planning, arbitration, or
+  vehicle-control stack.
+- Certifying a vehicle, satisfying a regulator, or proving a complete system
+  safe.
+- Actuating braking or steering or serving as the sole runtime safety layer.
+- Harmonizing laws, regulations, permits, or operating requirements among
+  cities, states, or nations.
+- Supporting every vehicle type, planner, sensor stack, operating domain, or
+  jurisdiction at launch.
+- Selling or redistributing restricted dataset content.
+
+## 3. Objectives
 
 **Technical objectives**
 
-- Establish a precise supported input contract and soundness assumptions.
-- Verify geometric bounds with independent reference implementations and
-  adversarial property-based tests.
+- Define and validate a precise supported input contract, soundness
+  assumptions, and operating envelope.
+- Verify geometric bounds with independent reference implementations,
+  adversarial/property-based tests, and external review.
 - Reduce false rejections while preserving conservative treatment of modeled
-  collision cases.
-- Measure throughput, p50/p95/p99 latency, memory, and failure behavior under
-  representative workload and hardware conditions.
-- Add uncertainty sets for ego and agents and explicitly handle stale,
-  incomplete, or inconsistent inputs.
+  collisions and explicit handling of unknown input.
+- Measure throughput, p50/p95/p99 latency, memory, and failure behavior on
+  partner-representative workloads and hardware.
+- Add and validate uncertainty sets for ego and agents; define handling for
+  stale, incomplete, or inconsistent inputs.
 
 **Product objectives**
 
 - Confirm a specific user problem, workflow, and economic buyer through
   structured interviews.
-- Deliver a usable offline SDK/CLI and integration example before expanding
-  into a hosted service or full platform.
+- Deliver a usable offline SDK/CLI, replay workflow, and integration example
+  before expanding into a hosted service or full platform.
 - Secure at least one design partner willing to define acceptance criteria and
   provide authorized, representative data or replay scenarios.
 
 **Commercial objectives**
 
-- Identify a viable initial buyer, procurement path, and deployment model.
+- Identify a viable initial buyer, procurement path, and deployment model
+  without assuming market size, demand, or willingness to pay.
 - Establish ownership, licensing, data rights, and publication permissions.
 - Test willingness to pay before setting a price or making a market-size claim.
 
-## 3. Potential customers and stakeholders
+## 4. Potential customers and stakeholders
 
 These are customer hypotheses, not confirmed customers.
 
@@ -186,22 +347,13 @@ Conduct structured interviews before committing to a commercial model:
 - What evidence would justify a paid pilot, and what would block adoption?
 - Can the partner provide authorized scenarios and a reference labeling process?
 
-## 4. Product scope and packaging hypotheses
+## 5. Commercial packaging hypotheses
 
-### Initial product: verification SDK and replay tool
-
-Recommended first deliverable:
-
-- Python library and command-line runner for offline/replay evaluation;
-- documented schemas for trajectories, footprints, occupancy, and forecasts;
-- clear verdicts including safe, unsafe, and invalid/unknown where appropriate;
-- clearance and violation diagnostics with model/configuration provenance;
-- baseline comparisons and exportable JSON/CSV reports;
-- deterministic scenario replay and a partner-facing integration example;
-- versioned behavior, tests, and explicit supported platform/workload limits.
-
-This should be positioned as **engineering validation software** until the
-evidence supports a more safety-critical use.
+The initial deliverable remains the offline verification SDK and replay
+workflow defined in [Section 2](#2-scope-what-implementation-includes). It
+should be positioned as **engineering validation software** until the evidence
+supports a more safety-critical use. Packaging and pricing below are options
+to test with prospective users, not established demand or commitments.
 
 ### Possible later offerings
 
@@ -216,18 +368,7 @@ evidence supports a more safety-critical use.
    collaborations to improve independent validation and broaden supported
    scenarios.
 
-These are business-model options to test, not commitments or pricing.
-
-### Explicitly out of scope for the first product
-
-- Building a full perception, prediction, planning, or vehicle-control stack.
-- Claiming to certify a vehicle, satisfy a regulator, or establish a
-  vehicle-level safety guarantee.
-- Actuating braking or steering or serving as the sole runtime safety layer.
-- Supporting every vehicle type, sensor stack, operating domain, or planner.
-- Selling or redistributing restricted dataset content.
-
-## 5. Implementation roadmap and stage gates
+## 6. Implementation roadmap and stage gates
 
 The timing below is indicative and gated by evidence, staffing, and partner
 access. It is not a delivery commitment.
@@ -239,6 +380,7 @@ access. It is not a delivery commitment.
 | 2. Expand offline validation | 2–5 months | Larger authorized scenario set; time-aware ground truth; relevant baselines; statistical reporting; CI/replay workflow; evidence export | Pre-registered metrics and evaluation protocol pass review; limitations disclosed |
 | 3. Design-partner integration | 4–9 months | Partner adapter; workload-specific profiling; offline and shadow-mode replay; issue triage; security and deployment review | Partner signs off on scoped shadow-mode objectives; no control actuation |
 | 4. Productization decision | 6–12+ months | Supported packaging, release process, documentation, support model, commercial/legal terms; decide whether runtime use merits a separate safety program | Evidence of adoption and a funded use case; independent safety and legal reviews; explicit go/no-go |
+| 5. Cross-program portability assessment | After initial partner evidence; timing TBD | Replicate the agreed protocol with additional independent organizations, vehicle/configuration profiles, and—where authorized—distinct operating contexts; document reusable versus local validation work | Independent partners can integrate and interpret results; portability limits are explicit; do not infer regulatory equivalence or nationwide readiness |
 
 ### Technical workstreams
 
@@ -260,7 +402,7 @@ access. It is not a delivery commitment.
    software-bill-of-materials practices, logging, reproducible builds, and
    on-premises/data-retention options.
 
-## 6. Validation and evidence plan
+## 7. Validation and evidence plan
 
 ### Validation ladder
 
@@ -330,7 +472,7 @@ See the [technical report](./technical-report.md) for methods, measurements,
 and caveats. Results must be regenerated from a verified archive before being
 used externally.
 
-## 7. Commercialization and engagement plan
+## 8. Commercialization and engagement plan
 
 ### Design-partner engagement
 
@@ -385,7 +527,7 @@ deployment costs, liability exposure, and the value evidenced in pilots. Avoid
 pricing tied to safety outcomes until measurement and contractual definitions
 are mature.
 
-## 8. Governance, legal, and data management
+## 9. Governance, legal, and data management
 
 - **IP and ownership:** establish code authorship, employment/contractor
   assignment, prior-work boundaries, patent/filer obligations, and publication
@@ -410,7 +552,7 @@ are mature.
 
 This section is a project checklist, not legal advice.
 
-## 9. Risks and mitigations
+## 10. Risks and mitigations
 
 | Risk | Why it matters | Mitigation / decision trigger |
 |---|---|---|
@@ -424,7 +566,7 @@ This section is a project checklist, not legal advice.
 | Full-platform scope creep | Increases cost before core value is proven | Gate perception, GNN forecasting, arbitration, and cross-platform work on partner evidence |
 | Benchmark selection bias | Small selected sample may mislead | Expand scenario diversity, document selection, report denominators and intervals, and use external review |
 
-## 10. Operating metrics and immediate actions
+## 11. Operating metrics and immediate actions
 
 ### Monthly project dashboard
 
@@ -455,7 +597,7 @@ This section is a project checklist, not legal advice.
 7. Select one partner-oriented offline workflow and define measurable
    acceptance criteria before adding broader platform features.
 
-## 11. Source documents
+## 12. Source documents
 
 - [Project plan](../PROJECT_PLAN.md)
 - [Repository status and limitations](../README.md)
