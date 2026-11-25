@@ -3,10 +3,11 @@
 https://github.com/user-attachments/assets/31b0ae50-3435-41ca-ae26-58a584b81635
 
 **Project description:** A planner-independent research prototype for checking
-whether candidate autonomous-vehicle trajectories maintain geometric clearance
-from modeled voxel occupancy and forecasted agents.
+whether candidate trajectories for autonomous vehicles (AVs) and vehicles
+equipped with advanced driver-assistance systems (ADAS) maintain geometric
+clearance from modeled voxel occupancy and forecasted agents.
 
-**Topics:** autonomous-vehicles, trajectory-verification, computational-geometry,
+**Topics:** autonomous-vehicles, ADAS, assisted-driving, trajectory-verification, computational-geometry,
 signed-distance-fields, voxel-grids, safety
 
 ## Executive summary
@@ -20,6 +21,12 @@ project addresses one bounded part of that challenge: checking whether a
 proposed vehicle trajectory maintains geometric clearance from the environment
 and modeled moving agents.
 
+The scope also includes assisted driving, where the driver remains responsible
+for driving and supervising the assistance function as applicable. ADAS
+evaluation may check trajectories proposed by an assistance function or
+trajectories reconstructed or predicted for offline analysis; a predicted
+driver path is an assumption, not the driver's intent.
+
 The project idea is a planner-independent verification component with a
 consistent input/output contract. It receives a candidate trajectory, vehicle
 footprint, voxel occupancy representation, agent forecasts, and a requested
@@ -29,7 +36,7 @@ tool for offline replay and validation first, with shadow-mode evaluation as a
 later stage. It is not a perception, prediction, planning, or control system,
 and it is not intended to serve as the sole runtime safety mechanism.
 
-A reusable interface and repeatable evaluation method could help AV teams
+A reusable interface and repeatable evaluation method could help AV and ADAS teams
 compare planner changes and validation results across vehicles and locations,
 instead of rebuilding this particular geometric check for each program. If
 validated and adopted by developers, simulation providers, and fleet
@@ -44,7 +51,9 @@ The current repository demonstrates a NumPy/SciPy implementation of a voxel
 signed-distance field (SDF), swept-footprint sampling, conservative clearance
 checks, geometry tests, latency measurements, and an early nuScenes metadata
 benchmark. It is a research prototype—not a production safety product,
-vehicle-level safety guarantee, or regulatory certification tool. Perception
+vehicle-level safety guarantee, or regulatory certification tool. It does not
+implement an ADAS integration, driver-intent model, warning interface, or driver
+handoff. Perception
 and forecast uncertainty are incomplete, several broader platform components
 remain scaffolding, and measured dataset-workload latency exceeds the
 configured 50 ms target. The near-term objective is to establish technical
@@ -96,9 +105,12 @@ predictions, or other unmodeled behavior.
 ## Implementation and validation plan
 
 The recommended sequence is to harden and independently validate the geometry
-core; expand offline scenario evaluation and reproducibility; integrate with a
-design partner in non-actuating replay/shadow mode; and only then decide whether
-productization or runtime use is justified. The [executive brief](docs/executive-project-brief.md)
+core; expand offline scenario evaluation and reproducibility for both AV and
+ADAS use cases; integrate with a design partner in non-actuating replay/shadow
+mode; and only then decide whether productization or runtime use is justified.
+ADAS validation should include driver interactions, overrides, and
+engagement/disengagement, without treating a geometric verdict as permission
+to warn or intervene. The [executive brief](docs/executive-project-brief.md)
 sets out stage gates, metrics, customer discovery, and governance. The broader
 [project plan](PROJECT_PLAN.md) describes the proposed end-to-end platform.
 

@@ -1,6 +1,6 @@
 # Executive Project & Commercialization Brief
 
-**Project:** Planner-independent geometric trajectory verification
+**Project:** Geometric trajectory verification for autonomous and assisted driving
 
 **Prepared:** 2026-11-09
 
@@ -14,8 +14,9 @@ intended scope, adoption thesis, and route to implementation.
 
 ## Executive summary
 
-Autonomous-vehicle (AV) developers face a difficult scaling problem: they must
-validate increasingly complex automated driving systems across distinct
+Autonomous-vehicle (AV) and advanced driver-assistance system (ADAS)
+developers face a difficult scaling problem: they must validate increasingly
+complex driving functions across distinct
 vehicles, operating domains, cities, and state requirements. Each deployment
 may involve a different planner, data pipeline, test environment, and evidence
 format. This can lead to duplicated integration and validation effort, make
@@ -36,9 +37,17 @@ non-actuating shadow-mode evaluation.
 specific question—does this candidate path keep the configured geometric
 clearance from the supplied, modeled scene over the checked horizon? The
 proposed component is intended to make that check independent of a particular
-planner and easier to reproduce across validation runs. It is not a complete
-answer to AV safety, which also depends on perception, prediction, planning,
-vehicle behavior, operational controls, and jurisdiction-specific review.
+planner or assistance function and easier to reproduce across validation runs.
+It is not a complete answer to AV or ADAS safety, which also depends on perception, prediction, planning,
+vehicle behavior, driver interaction, operational controls, and
+jurisdiction-specific review.
+
+**Assisted-driving scope:** ADAS is distinct from autonomous driving: the
+driver remains responsible for driving and supervising the assistance function
+as applicable. A candidate may be proposed by an assistance function or
+reconstructed or predicted for analysis; a predicted path is not a statement
+of driver intent. The current prototype does not implement an ADAS adapter,
+driver model, warning interface, handoff, or intervention.
 
 **Why it could support broader AV adoption:** a common technical interface and
 repeatable evidence format could reduce the work required to integrate and
@@ -76,8 +85,8 @@ legal/IP clearance.
 
 1. Approve a focused problem-discovery and verification-core stage rather than
    building the entire proposed perception-to-planning platform at once.
-2. Select one initial design-partner profile—recommended: an AV planning,
-   simulation, or validation team—and agree on an offline, non-actuating pilot
+2. Select one initial design-partner profile—recommended: an AV or ADAS
+   planning, simulation, or validation team—and agree on an offline, non-actuating pilot
    objective.
 3. Assign owners for technical validation, customer discovery, and IP/data
    review before external product or safety claims.
@@ -89,7 +98,7 @@ legal/IP clearance.
 
 ### The problem to tackle
 
-The initial problem is not “make AVs safe” in the abstract. It is the narrower
+The initial problem is not “make AVs or ADAS safe” in the abstract. It is the narrower
 engineering and integration problem of consistently checking candidate
 trajectories against a supplied geometric scene model. A team may need to
 answer the same clearance question for multiple planner versions, vehicles,
@@ -180,7 +189,7 @@ transfer approval from one location to another.
 - **Mission:** make trajectory-level geometric checks easier to integrate,
   reproduce, inspect, and validate across planning systems.
 - **Vision:** contribute a reusable verification component and evidence
-  workflow that can complement AV development and validation across programs
+  workflow that can complement AV and ADAS development and validation across programs
   and operating locations.
 
 ### Product principles
@@ -197,6 +206,9 @@ transfer approval from one location to another.
 5. **Evidence before actuation:** begin with offline and shadow-mode use; do not
    connect to control authority until the safety and operational case supports
    it.
+6. **Respect the driver:** model candidate provenance and driver/assistance
+   roles explicitly; a geometric verdict alone does not justify a warning,
+   intervention, handoff, or assumption about driver intent.
 
 ### What the project is—and is not
 
@@ -204,6 +216,7 @@ transfer approval from one location to another.
 |---|---|
 | A research prototype for geometric trajectory checks and a potential reusable engineering component | A certified safety system or proof of vehicle-level safety |
 | A proposed portable interface for planner, simulation, and validation workflows | A replacement for perception, prediction, planning, control, or local review |
+| A proposed check for ADAS-function or replay/prediction candidates under stated assumptions | An ADAS integration, driver-intent model, warning system, or handoff mechanism |
 | A basis for repeatable offline and future shadow-mode experiments | A demonstrated hard real-time in-vehicle component |
 | A possible contributor to more consistent technical evidence across programs | A national AV deployment mandate, regulatory standard, or approval shortcut |
 
@@ -218,6 +231,14 @@ static occupancy and supported dynamic-agent forecasts. A useful result should
 include more than a Boolean: it should identify the minimum modeled clearance,
 where/when the limiting interaction occurs, the assumptions and bounds applied,
 and any missing or invalid coverage that prevents a meaningful verdict.
+
+For AVs, a candidate may originate with a planner. For ADAS, it may come from
+an assistance function or be reconstructed or predicted for offline analysis.
+Record the candidate source, assistance state, driver role, and relevant
+uncertainty when available; these context fields and adapters are proposed,
+not part of the current verifier contract. A path inferred from driver behavior
+is a hypothesis, and clearance of that path does not validate the overall
+driver-vehicle system.
 
 ### Target implementation package
 
@@ -259,11 +280,11 @@ that every component is already present in the repository.
 | Swept-volume checking | Sampled extruded footprint and interpolated poses | Broader footprint/vehicle models, independent geometry oracle, validated bounds for supported motion and input conditions |
 | Dynamic agents | Forecast centers interpolated and represented by configurable circles | Agent dimensions, uncertainty sets, confidence semantics, time synchronization, stale/missing forecast behavior |
 | Occupancy input | Thresholded voxel-grid contract | Calibrated probability/uncertainty treatment, map provenance, sensor and fusion integration; fusion is not currently a production subsystem |
-| Trajectory input | Shared project types and prototype verification interface | Stable, versioned external schema and supported planner/simulator adapters |
+| Trajectory input | Shared project types and prototype verification interface | Stable, versioned external schema and supported AV/ADAS function and replay adapters; candidate provenance |
 | Evidence and replay | Benchmark scripts and JSON output for selected experiments | Scenario registry, deterministic replay, provenance, report versioning, reproducible CI workflow |
 | Performance | Prototype latency sweeps | Profiling, caching/algorithm improvements, tail-latency characterization, workload-specific performance envelope; current nuScenes workload exceeds the configured 50 ms target |
 | Evaluation | Analytic tests, finite brute-force cases, and selected nuScenes metadata run | Resolve archive checksum mismatch, expand authorized scenarios, improve time-continuous ground truth, compare independently implemented baselines, and obtain external review |
-| System-level components | API/frontend and several planning/perception modules are scaffolding or prototypes | Not in the initial scope; do not imply end-to-end AV capability |
+| System-level components | API/frontend and several planning/perception modules are scaffolding or prototypes | Not in the initial scope; do not imply end-to-end AV or ADAS capability |
 
 ### Explicitly out of scope for the initial product
 
@@ -272,6 +293,9 @@ that every component is already present in the repository.
 - Certifying a vehicle, satisfying a regulator, or proving a complete system
   safe.
 - Actuating braking or steering or serving as the sole runtime safety layer.
+- Driver-intent inference, driver monitoring, HMI warnings, and assistance
+  engagement or handoff control. These require separate system and
+  human-factors validation before any operational use.
 - Harmonizing laws, regulations, permits, or operating requirements among
   cities, states, or nations.
 - Supporting every vehicle type, planner, sensor stack, operating domain, or
@@ -292,6 +316,8 @@ that every component is already present in the repository.
   partner-representative workloads and hardware.
 - Add and validate uncertainty sets for ego and agents; define handling for
   stale, incomplete, or inconsistent inputs.
+- Define AV and ADAS candidate provenance and test representative assisted
+  driving scenarios, driver overrides, and assistance-state transitions.
 
 **Product objectives**
 
@@ -316,13 +342,14 @@ These are customer hypotheses, not confirmed customers.
 | Segment | Likely user / champion | Possible buyer | Initial need to test |
 |---|---|---|---|
 | AV developers and autonomous fleet technology teams | Planning, prediction, simulation, and safety engineers | Engineering director, VP autonomy, or safety leader | Independent trajectory checks, regression analysis, and shadow-mode diagnostics |
+| ADAS developers, suppliers, and vehicle manufacturers | Assistance-function, validation, and human-factors engineers | ADAS program or engineering leadership | Offline checks of assistance-function and replay candidates, driver-interaction scenarios, and transition diagnostics |
 | AV simulation and validation vendors | Scenario, test, and integration engineers | Product or business-unit leader | A verification component and repeatable metrics to complement scenario testing |
 | Autonomous trucking and delivery developers | Motion-planning and vehicle-integration teams | Program or engineering leadership | Vehicle-specific geometry, long-horizon interactions, and validation evidence |
 | Robotics and industrial mobile-robot developers | Navigation and safety engineers | Robotics engineering or product leadership | Adapted geometric clearance checks in constrained operating domains |
 | Research labs and universities | Principal investigators and graduate researchers | Lab or sponsored-program leadership | Reproducible algorithms, evaluation harnesses, and research collaboration |
 | Insurers, auditors, and safety consultants | Technical assessors | Practice or program leadership | Potentially useful evidence inputs; not a substitute for independent safety assessment |
 
-**Recommended beachhead:** AV developer simulation, planning, or validation
+**Recommended beachhead:** AV or ADAS developer simulation, planning, or validation
 teams. They can evaluate an offline tool without immediate vehicle-control
 authority, and are positioned to provide the integration and scenario feedback
 needed to test the product thesis.
@@ -346,6 +373,8 @@ Conduct structured interviews before committing to a commercial model:
 - Who owns the budget, security review, safety approval, and procurement?
 - What evidence would justify a paid pilot, and what would block adoption?
 - Can the partner provide authorized scenarios and a reference labeling process?
+- For ADAS, where do candidates come from, who is responsible for driving, and
+  how are overrides and engagement/disengagement represented and labeled?
 
 ## 5. Commercial packaging hypotheses
 
@@ -375,10 +404,10 @@ access. It is not a delivery commitment.
 
 | Stage | Indicative duration | Scope and deliverables | Exit gate |
 |---|---:|---|---|
-| 0. Establish the project | 0–4 weeks | Customer interviews; product requirements; threat/hazard and intended-use boundary; IP, data, and licensing review; benchmark integrity investigation | Named user/problem, authorized evaluation data, and written intended-use statement |
+| 0. Establish the project | 0–4 weeks | AV and ADAS discovery; candidate-source and driver-role assumptions; product requirements; threat/hazard and intended-use boundary; IP, data, and licensing review; benchmark integrity investigation | Named user/problem, authorized evaluation data, and written intended-use statement |
 | 1. Harden the core | 1–3 months | Input validation; geometry reference tests; uncertainty and map-boundary policy; reproducible CLI; profiling; failure/unknown semantics | Independent code/algorithm review; test evidence; bounded and documented operating envelope |
-| 2. Expand offline validation | 2–5 months | Larger authorized scenario set; time-aware ground truth; relevant baselines; statistical reporting; CI/replay workflow; evidence export | Pre-registered metrics and evaluation protocol pass review; limitations disclosed |
-| 3. Design-partner integration | 4–9 months | Partner adapter; workload-specific profiling; offline and shadow-mode replay; issue triage; security and deployment review | Partner signs off on scoped shadow-mode objectives; no control actuation |
+| 2. Expand offline validation | 2–5 months | Authorized AV and ADAS scenario sets, including assistance transitions and driver overrides; time-aware ground truth; relevant baselines; statistical reporting; CI/replay workflow; evidence export | Pre-registered metrics and evaluation protocol pass review; AV/ADAS coverage and limitations disclosed separately |
+| 3. Design-partner integration | 4–9 months | AV or ADAS partner adapter; workload-specific profiling; offline and, after review, non-actuating shadow-mode evaluation; issue triage; security and deployment review | Partner signs off on scoped objectives and driver/function responsibilities; no warnings, interventions, or control actuation |
 | 4. Productization decision | 6–12+ months | Supported packaging, release process, documentation, support model, commercial/legal terms; decide whether runtime use merits a separate safety program | Evidence of adoption and a funded use case; independent safety and legal reviews; explicit go/no-go |
 | 5. Cross-program portability assessment | After initial partner evidence; timing TBD | Replicate the agreed protocol with additional independent organizations, vehicle/configuration profiles, and—where authorized—distinct operating contexts; document reusable versus local validation work | Independent partners can integrate and interpret results; portability limits are explicit; do not infer regulatory equivalence or nationwide readiness |
 
@@ -401,6 +430,9 @@ access. It is not a delivery commitment.
 6. **Security and operations:** document trust boundaries, dependency and
    software-bill-of-materials practices, logging, reproducible builds, and
    on-premises/data-retention options.
+7. **ADAS integration and human factors:** specify assistance state, candidate
+   provenance, driver overrides, and transition assumptions; assess any
+   future warning or intervention separately with the host system and driver.
 
 ## 7. Validation and evidence plan
 
@@ -416,7 +448,9 @@ access. It is not a delivery commitment.
    vehicle size, requested margin, or uncertainty.
 4. **Scenario replay:** logged and synthetic scenarios with explicit temporal
    ground truth; include collisions, near misses, occlusions, map edges, and
-   data dropouts.
+   data dropouts. Include ADAS following, lane changes, cut-ins, driver
+   overrides, and assistance engagement/disengagement; distinguish function
+   candidates from reconstructed or predicted driver trajectories.
 5. **Baseline comparison:** include simple distance and TTC checks and a
    properly integrated open-source RSS implementation if platform and license
    review permit. Compare only metrics with consistent meaning.
@@ -440,6 +474,7 @@ access. It is not a delivery commitment.
 | Robustness | Behavior under missing, stale, malformed, out-of-bounds, and inconsistent inputs |
 | Integration effort | Engineering time, supported-format gaps, and operational failures during partner integration |
 | Product value | User-reported time saved, defects found, regression coverage, and willingness to pay; measure with partner evidence |
+| AV/ADAS coverage | Report results separately by use case, candidate source, assistance state, driver interaction, and scenario; disclose untested transitions and data gaps |
 
 **Statistical caution:** zero observed false accepts is not proof of zero risk.
 As a rough binomial rule, zero failures among \(n\) independent positive cases
@@ -564,6 +599,7 @@ This section is a project checklist, not legal advice.
 | Liability and overclaiming | Safety-critical use has high consequence | Keep early product non-actuating; require counsel and independent safety review before changing intended use |
 | IP ownership or licensing conflict | Could block publication or commercialization | Clear ownership and license before external distribution |
 | Full-platform scope creep | Increases cost before core value is proven | Gate perception, GNN forecasting, arbitration, and cross-platform work on partner evidence |
+| ADAS driver/authority confusion | A modeled trajectory or verdict could be mistaken for driver intent or permission to intervene | Record candidate provenance and driver/function roles; keep early evaluation non-actuating; require separate human-factors and system-safety review for operational use |
 | Benchmark selection bias | Small selected sample may mislead | Expand scenario diversity, document selection, report denominators and intervals, and use external review |
 
 ## 11. Operating metrics and immediate actions
@@ -595,7 +631,8 @@ This section is a project checklist, not legal advice.
 6. Create an IP, data-rights, and dependency-license review checklist with
    qualified counsel/advisors.
 7. Select one partner-oriented offline workflow and define measurable
-   acceptance criteria before adding broader platform features.
+   acceptance criteria before adding broader platform features; document AV
+   or ADAS candidate provenance and driver-role assumptions for that workflow.
 
 ## 12. Source documents
 

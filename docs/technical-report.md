@@ -4,7 +4,8 @@
 
 **Date:** 2026-11-07
 
-**Scope:** NumPy/SciPy core prototype; not a production safety assessment
+**Scope:** NumPy/SciPy core prototype for modeled trajectory checks in AV and
+ADAS development; not a production safety assessment
 
 ## Abstract
 
@@ -14,6 +15,13 @@ Euclidean distance field, samples an extruded vehicle footprint along
 interpolated poses, and subtracts explicit voxel, interpolation, and sampling
 error allowances before returning a safety verdict. Static occupancy and
 deterministic, linearly interpolated agent-center forecasts are supported.
+
+The broader project scope includes assisted-driving vehicles as well as AVs.
+An ADAS candidate could be supplied by an assistance function or reconstructed
+or predicted for analysis; a predicted trajectory does not establish driver
+intent. The verifier evaluates supplied geometry only: it does not implement
+an ADAS adapter, driver model, warning, handoff, or intervention. The driver
+remains responsible for driving and supervising assistance as applicable.
 
 Analytic box and sphere tests and 128 deterministic comparisons against exact
 axis-aligned rectangle/voxel overlap geometry produced zero false accepts in
@@ -182,6 +190,14 @@ after thresholding. The verifier is conservative at coarse resolutions and may
 reject physically clear trajectories. The current benchmark measures a Python
 NumPy/SciPy path and includes SDF construction; caching or an optimized C++ /
 pybind11 hot loop may change the latency profile.
+
+The reported tests and nuScenes benchmark were not designed to establish ADAS
+performance, driver behavior, warning effectiveness, or transition safety.
+Future offline evaluation should separately report AV and ADAS candidate
+sources and scenarios, including following, lane changes, cut-ins, driver
+overrides, and assistance engagement/disengagement. Any later shadow evaluation
+must remain non-actuating; operational warnings or interventions require a
+separate system-level and human-factors safety case.
 
 Next work is to resolve the archive-checksum discrepancy, evaluate more of the
 licensed train/validation scenes, add a reproducible comparison against an
